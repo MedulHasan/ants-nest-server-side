@@ -4,6 +4,8 @@ const { MongoClient, CURSOR_FLAGS } = require("mongodb");
 const fileUpload = require("express-fileupload");
 require("dotenv").config();
 
+const stripe = require("stripe")(process.env.STRIPE_SECRET);
+
 const port = process.env.PORT || 8888;
 const app = express();
 
@@ -26,10 +28,6 @@ async function run() {
 
         app.post("/user", async (req, res) => {
             const { fullName, email, imageURL } = req.body;
-            // const image = req.files.image;
-            // const imageData = image.data;
-            // const encodedData = imageData.toString("base64");
-            // const imageBuffer = Buffer.from(encodedData, "base64");
             const user = {
                 fullName,
                 email,
@@ -52,13 +50,28 @@ async function run() {
             );
             res.json(result);
         });
+
+        app.post("/create-payment-intent", async (req, res) => {
+            const paymentInfo = req.body;
+            const amount = paymentInfo.totalPrice * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount,
+                currency: "eur",
+                automatic_payment_methods: {
+                    enabled: true,
+                },
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        });
     } finally {
     }
 }
 run().catch(console.dir);
 
 app.get("/", (req, res) => {
-    res.send("whats app clone");
+    res.send("Ant's Nest");
 });
 
 app.listen(port, () => {
