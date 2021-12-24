@@ -2,9 +2,16 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient, CURSOR_FLAGS } = require("mongodb");
 const fileUpload = require("express-fileupload");
+const cloudinary = require("cloudinary").v2;
 require("dotenv").config();
 
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
+
+cloudinary.config({
+    cloud_name: "dpdk6agx8",
+    api_key: "275637321624967",
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 const port = process.env.PORT || 8888;
 const app = express();
@@ -16,7 +23,7 @@ const client = new MongoClient(uri, {
 });
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "20mb" }));
 app.use(fileUpload());
 
 async function run() {
@@ -24,6 +31,7 @@ async function run() {
         await client.connect();
         const database = client.db("antsNest");
         const userCollection = database.collection("users");
+        const listingCollection = database.collection("listing");
         console.log("Database connected");
 
         app.post("/user", async (req, res) => {
@@ -51,6 +59,40 @@ async function run() {
             res.json(result);
         });
 
+        // upload cloudinary
+        app.post("/add-listing", async (req, res) => {
+            try {
+                const { houseData, images } = req.body;
+                let image = {};
+                let promises = [];
+                images.forEach(async (image) => {
+                    promises.push(
+                        cloudinary.uploader.upload(image, {
+                            folder: "ants_nest_listing",
+                        })
+                    );
+                });
+                const response = await Promise.all(promises);
+                const listingImages = response.map((image) => image.secure_url);
+                listingImages.forEach((i, index) => {
+                    let obj = "img" + (index + 1);
+                    image[obj] = i;
+                });
+                houseData.image = image;
+                const result = await listingCollection.insertOne(houseData);
+                res.json(result);
+            } catch (err) {
+                console.log(err);
+            }
+        });
+
+        app.get("/add-listing", async (req, res) => {
+            const cursor = listingCollection.find({});
+            const result = await cursor.toArray();
+            res.json(result);
+        });
+
+        // payment
         app.post("/create-payment-intent", async (req, res) => {
             const paymentInfo = req.body;
             const amount = paymentInfo.totalPrice * 100;
