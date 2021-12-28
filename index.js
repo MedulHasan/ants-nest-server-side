@@ -44,6 +44,7 @@ async function run() {
             const result = await userCollection.insertOne(user);
             res.json(result);
         });
+
         app.put("/user", async (req, res) => {
             const data = req.body;
             const filter = { email: data.email };
@@ -56,6 +57,15 @@ async function run() {
                 updateDoc,
                 options
             );
+            res.json(result);
+        });
+
+        // get my listing
+        app.get("/my-listing/:email", async (req, res) => {
+            const email = req.params.email;
+            const query = { "landlord.email": email };
+            const cursor = listingCollection.find(query);
+            const result = await cursor.toArray();
             res.json(result);
         });
 
