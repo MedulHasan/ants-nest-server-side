@@ -32,8 +32,10 @@ async function run() {
         const database = client.db("antsNest");
         const userCollection = database.collection("users");
         const listingCollection = database.collection("listing");
+        const bookingCollection = database.collection("booking");
         console.log("Database connected");
 
+        // post user
         app.post("/user", async (req, res) => {
             const { fullName, email, imageURL } = req.body;
             const user = {
@@ -45,6 +47,7 @@ async function run() {
             res.json(result);
         });
 
+        // put user
         app.put("/user", async (req, res) => {
             const data = req.body;
             const filter = { email: data.email };
@@ -96,9 +99,46 @@ async function run() {
             }
         });
 
+        // get all listing
         app.get("/add-listing", async (req, res) => {
             const cursor = listingCollection.find({});
             const result = await cursor.toArray();
+            res.json(result);
+        });
+
+        // post booking
+        app.post("/booking", async (req, res) => {
+            const { email, house, searchHouse } = req.body;
+            const {
+                image,
+                houseTitle,
+                address,
+                city,
+                price,
+                cleaningFee,
+                serviceFee,
+                landlord,
+            } = house;
+            const prices =
+                parseInt(price) + parseInt(cleaningFee) + parseInt(serviceFee);
+            const { arrivalDate, departureDate, adult, child, babies } =
+                searchHouse;
+            const bookingHouse = {
+                email,
+                img1: image.img1,
+                houseTitle,
+                address,
+                city,
+                prices,
+                name: landlord.name,
+                phone: landlord.phone,
+                arrivalDate,
+                departureDate,
+                adult,
+                child,
+                babies,
+            };
+            const result = await bookingCollection.insertOne(bookingHouse);
             res.json(result);
         });
 
