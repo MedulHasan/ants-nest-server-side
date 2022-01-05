@@ -142,6 +142,15 @@ async function run() {
             res.json(result);
         });
 
+        // get booking by email
+        app.get("/booking/:email", async (req, res) => {
+            const email = req.params.email;
+            const filter = { email: email };
+            const cursor = bookingCollection.find(filter);
+            const result = await cursor.toArray();
+            res.json(result);
+        });
+
         // payment
         app.post("/create-payment-intent", async (req, res) => {
             const paymentInfo = req.body;
